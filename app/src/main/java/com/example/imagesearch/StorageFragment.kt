@@ -1,59 +1,58 @@
 package com.example.imagesearch
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import com.example.imagesearch.databinding.FragmentStorageBinding
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [StorageFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class StorageFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
-
+    private lateinit var binding: FragmentStorageBinding
+    private lateinit var adapter: RvAdapter
+    private val rvModelList = mutableListOf<RvModel>()
+    private lateinit var viewModel: SharedViewModel
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_storage, container, false)
-    }
+        binding = FragmentStorageBinding.inflate(layoutInflater)
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment StorageFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            StorageFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
+        adapter = RvAdapter(rvModelList)
+        binding.recyclerView.adapter = adapter
+        binding.recyclerView.layoutManager = StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
+
+        viewModel = ViewModelProvider(requireActivity()).get(SharedViewModel::class.java)
+
+        viewModel.selectedRvItem.observe(viewLifecycleOwner) { selectedItem ->
+            selectedItem?.let {
+                rvModelList.clear()
+                rvModelList.addAll(selectedItem)
+                adapter.notifyDataSetChanged()
             }
+        }
+
+        adapter.itemClick = object : RvAdapter.ItemClick {
+            override fun onClick(view: View, position: Int) {
+                val clickedItem = rvModelList[position]
+                Log.d("아이템 클릭", "position: $position")
+
+                val selectedItems = viewModel.selectedRvItem.value?.toMutableList() ?: mutableListOf()
+                selectedItems.remove(clickedItem)
+                viewModel.selectedRvItem.value = selectedItems
+                //(activity as MainActivity).setFragment(StorageFragment())
+                Toast.makeText(context, "지울라구!!!!", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val itemSpacingDecoration = ItemSpacingDecoration(30)
+        binding.recyclerView.addItemDecoration(itemSpacingDecoration)
+
+        return binding.root
     }
 }

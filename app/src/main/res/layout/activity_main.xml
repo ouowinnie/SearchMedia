@@ -12,21 +12,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginBottom="65dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/fragmentContainerView" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="65dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <TextView
-            android:id="@+id/home"
+            android:id="@+id/fragmentBtn1"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -38,7 +30,7 @@
             app:drawableTopCompat="@drawable/drawable_left_image_home" />
 
         <TextView
-            android:id="@+id/save"
+            android:id="@+id/fragmentBtn2"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
