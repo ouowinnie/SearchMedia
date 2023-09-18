@@ -10,7 +10,7 @@ data class RvModel(
     @SerializedName("datetime")
     var datetime: String,
     var isLiked: Boolean = false,
-    var sourceFragment: String = ""
+    var storageFragment: String = ""
 )
 data class RvModelList(
     @SerializedName("documents")

@@ -58,18 +58,16 @@ class SearchFragment : Fragment() {
         if (lastSearchQuery.isNotEmpty()) {
             binding.searchEditText.setText(lastSearchQuery)
         }
-        Log.d("마지막 검색어 : ", lastSearchQuery)
 
         // 아이템 데이터
         adapter.itemClick = object : RvAdapter.ItemClick {
             override fun onClick(view: View, position: Int) {
                 val clickedItem = rvModelList[position]
-                Log.d("아이템 클릭", "position: $position")
 
                 val selectedItems = viewModel.selectedRvItem.value?.toMutableList() ?: mutableListOf()
                 selectedItems.add(clickedItem)
                 viewModel.selectedRvItem.value = selectedItems
-                Toast.makeText(context, "선택되었다구!!!!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "보관함에 추가 되었습니다.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -103,6 +101,7 @@ class SearchFragment : Fragment() {
             }
         })
     }
+
     private fun saveSearchQuery(query: String) {
         prefs = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
         editPrefs = prefs.edit()

@@ -32,7 +32,7 @@ class StorageFragment : Fragment() {
         viewModel.selectedRvItem.observe(viewLifecycleOwner) { selectedItem ->
             selectedItem?.let {
                 rvModelList.clear()
-                rvModelList.addAll(selectedItem.filter { it.isLiked && it.sourceFragment == "StorageFragment" })
+                rvModelList.addAll(selectedItem.filter { it.isLiked && it.storageFragment == "StorageFragment" })
                 adapter.notifyDataSetChanged()
             }
         }
@@ -40,13 +40,11 @@ class StorageFragment : Fragment() {
         adapter.itemClick = object : RvAdapter.ItemClick {
             override fun onClick(view: View, position: Int) {
                 val clickedItem = rvModelList[position]
-                Log.d("아이템 클릭", "position: $position")
 
                 val selectedItems = viewModel.selectedRvItem.value?.toMutableList() ?: mutableListOf()
                 selectedItems.remove(clickedItem)
                 viewModel.selectedRvItem.value = selectedItems
-                //(activity as MainActivity).setFragment(StorageFragment())
-                Toast.makeText(context, "지울라구!!!!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "보관함에서 해제 되었습니다.", Toast.LENGTH_SHORT).show()
             }
         }
 
