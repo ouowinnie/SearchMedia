@@ -1,35 +1,34 @@
 package com.example.imagesearch
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.os.bundleOf
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.imagesearch.databinding.FragmentSearchBinding
-import okhttp3.OkHttpClient
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 class SearchFragment : Fragment() {
     private lateinit var binding: FragmentSearchBinding
     private lateinit var adapter: RvAdapter
     private val rvModelList = mutableListOf<RvModel>()
     private lateinit var viewModel: SharedViewModel
+
+    private lateinit var prefs : SharedPreferences
+    private lateinit var editPrefs: SharedPreferences.Editor
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -42,16 +41,24 @@ class SearchFragment : Fragment() {
 
         // ViewModel 초기화
         viewModel = ViewModelProvider(requireActivity()).get(SharedViewModel::class.java)
+        prefs = requireContext().getSharedPreferences("pref_file", Context.MODE_PRIVATE)
+        editPrefs = prefs.edit()
 
         // 검색 버튼
         binding.searchButton.setOnClickListener {
             val query = binding.searchEditText.text.toString()
             if (query.isNotEmpty()) {
                 performSearch(query)
-                saveSearchQuery(query)
                 Log.d("버튼", "넘겨주고 있는겨 ~")
             }
         }
+
+        // 이전 검색어 입력
+        val lastSearchQuery = loadSearchQuery()
+        if (lastSearchQuery.isNotEmpty()) {
+            binding.searchEditText.setText(lastSearchQuery)
+        }
+        Log.d("마지막 검색어 : ", lastSearchQuery)
 
         // 아이템 데이터
         adapter.itemClick = object : RvAdapter.ItemClick {
@@ -64,11 +71,6 @@ class SearchFragment : Fragment() {
                 viewModel.selectedRvItem.value = selectedItems
                 Toast.makeText(context, "선택되었다구!!!!", Toast.LENGTH_SHORT).show()
             }
-        }
-
-        val savedQuery = loadSearchQuery()
-        if (savedQuery.isNotEmpty()) {
-            binding.searchEditText.setText(savedQuery)
         }
 
         // 아이템 간격 조절
@@ -90,6 +92,7 @@ class SearchFragment : Fragment() {
                         rvModelList.clear()
                         rvModelList.addAll(it.data)
                         adapter.notifyDataSetChanged()
+                        saveSearchQuery(query)
                     }
                 } else {
                     Log.d("API 응답", "에러 응답 코드: ${response.code()}")
@@ -100,16 +103,14 @@ class SearchFragment : Fragment() {
             }
         })
     }
-    // 검색어 저장
     private fun saveSearchQuery(query: String) {
-        val sharedPreferences = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putString("searchQuery", query)
-        editor.apply()
+        prefs = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        editPrefs = prefs.edit()
+        editPrefs.putString("searchQuery", query)
+        editPrefs.apply()
     }
-    // 검색어 볼러오기
     private fun loadSearchQuery(): String {
-        val sharedPreferences = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        return sharedPreferences.getString("searchQuery", "") ?: ""
+        prefs = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        return prefs.getString("searchQuery", "") ?: ""
     }
 }

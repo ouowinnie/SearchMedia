@@ -32,7 +32,7 @@ class StorageFragment : Fragment() {
         viewModel.selectedRvItem.observe(viewLifecycleOwner) { selectedItem ->
             selectedItem?.let {
                 rvModelList.clear()
-                rvModelList.addAll(selectedItem)
+                rvModelList.addAll(selectedItem.filter { it.isLiked && it.sourceFragment == "StorageFragment" })
                 adapter.notifyDataSetChanged()
             }
         }

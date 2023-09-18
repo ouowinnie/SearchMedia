@@ -8,9 +8,11 @@ data class RvModel(
     @SerializedName("display_sitename")
     var sitename: String,
     @SerializedName("datetime")
-    var datetime: String
+    var datetime: String,
+    var isLiked: Boolean = false,
+    var sourceFragment: String = ""
 )
 data class RvModelList(
     @SerializedName("documents")
-    val data: List<RvModel>
+    val data: ArrayList<RvModel>
 )
