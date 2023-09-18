@@ -3,8 +3,12 @@ package com.example.imagesearch
 import com.google.gson.annotations.SerializedName
 
 data class RvModel(
-    @SerializedName("image_url")
+    @SerializedName("thumbnail_url")
     var thumbnail: String,
+    @SerializedName("thumbnail")
+    var videoThumbnail: String,
+    @SerializedName("title")
+    var videoTitle: String,
     @SerializedName("display_sitename")
     var sitename: String,
     @SerializedName("datetime")
