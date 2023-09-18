@@ -2,6 +2,7 @@ package com.example.imagesearch
 
 import android.graphics.Rect
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,13 +26,12 @@ class RvAdapter(private val items: List<RvModel>) : RecyclerView.Adapter<RvAdapt
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
         val item = items[position]
-
-        // Glide, 이미지 화면에 표시
         Glide.with(holder.itemView.context)
-            .load(item.thumbnail)
+            //item.thumbnail이 null이 아니면 item.thumbnail을, 그렇지 않으면 item.videoThumbnail
+            .load(item.thumbnail ?: item.videoThumbnail)
             .transition(DrawableTransitionOptions.withCrossFade())
             .into(holder.imageView)
-        holder.siteNameTextView.text = item.sitename
+        holder.titleTextView.text = item.sitename ?: item.videoTitle
         holder.dateTextView.text = item.datetime
         // 북마크
         holder.likeIcon.visibility = if (item.storageFragment == "StorageFragment") View.VISIBLE else View.GONE
@@ -40,6 +40,8 @@ class RvAdapter(private val items: List<RvModel>) : RecyclerView.Adapter<RvAdapt
             itemClick?.onClick(it, position)
             item.isLiked = !item.isLiked
             item.storageFragment = "StorageFragment"
+            Log.d("RvModel", "thumbnail: ${item.thumbnail}")
+            Log.d("RvModel", "videoThumbnail: ${item.videoThumbnail}")
         }
         // 패딩값 세부 조절
         if (position % 2 == 0) {
@@ -51,14 +53,13 @@ class RvAdapter(private val items: List<RvModel>) : RecyclerView.Adapter<RvAdapt
             )
         }
     }
-
     override fun getItemCount(): Int {
         return items.size
     }
 
     inner class MyViewHolder(private val binding: RvItemBinding) : RecyclerView.ViewHolder(binding.root) {
         val imageView = binding.itemImage
-        val siteNameTextView = binding.itemName
+        val titleTextView = binding.itemName
         val dateTextView = binding.itemDate
         val likeIcon = binding.likeIcon
         init {
