@@ -8,14 +8,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.imagesearch.databinding.FragmentSearchBinding
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -23,8 +20,8 @@ import retrofit2.Response
 class SearchFragment : Fragment() {
     private lateinit var binding: FragmentSearchBinding
     private lateinit var adapter: RvAdapter
-    private val rvModelList = mutableListOf<RvModel>()
     private lateinit var viewModel: SharedViewModel
+    private val rvModelList  = mutableListOf<RvModel>()
 
     private lateinit var prefs : SharedPreferences
     private lateinit var editPrefs: SharedPreferences.Editor
@@ -80,26 +77,46 @@ class SearchFragment : Fragment() {
 
     // 데이터 추가하고 어뎁터 갱신하기
     private fun performSearch(query: String) {
-        // ViewModel을 통해 API 요청
-        viewModel.requestImageData(query).enqueue(object : Callback<RvModelList> {
+        val imageCall = viewModel.searchImages(query)
+        val videoCall = viewModel.searchVideos(query)
+
+        val imageResults: MutableList<RvModel> = mutableListOf()
+        val videoResults: MutableList<RvModel> = mutableListOf()
+
+        val imageCallback = object : Callback<RvModelList> {
             override fun onResponse(call: Call<RvModelList>, response: Response<RvModelList>) {
                 if (response.isSuccessful) {
                     val body = response.body()
                     body?.let {
-                        Log.d("API 응답", "데이터 수: ${it.data.size}")
-                        rvModelList.clear()
-                        rvModelList.addAll(it.data)
+                        imageResults.addAll(it.data)
                         adapter.notifyDataSetChanged()
-                        saveSearchQuery(query)
+                        combineResults(imageResults, videoResults)
                     }
-                } else {
-                    Log.d("API 응답", "에러 응답 코드: ${response.code()}")
                 }
             }
             override fun onFailure(call: Call<RvModelList>, t: Throwable) {
-                Log.e("API 에러", "API 요청 실패", t)
             }
-        })
+        }
+
+        val videoCallback = object : Callback<RvModelList> {
+            override fun onResponse(call: Call<RvModelList>, response: Response<RvModelList>) {
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    body?.let {
+                        videoResults.addAll(it.data)
+                        adapter.notifyDataSetChanged()
+                        combineResults(imageResults, videoResults)
+                    }
+                }
+            }
+            override fun onFailure(call: Call<RvModelList>, t: Throwable) {
+            }
+        }
+
+        imageCall.enqueue(imageCallback)
+        videoCall.enqueue(videoCallback)
+
+        saveSearchQuery(query)
     }
 
     private fun saveSearchQuery(query: String) {
@@ -111,5 +128,12 @@ class SearchFragment : Fragment() {
     private fun loadSearchQuery(): String {
         prefs = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
         return prefs.getString("searchQuery", "") ?: ""
+    }
+    private fun combineResults(imageResults: List<RvModel>, videoResults: List<RvModel>) {
+        rvModelList.clear()
+        rvModelList.addAll(imageResults)
+        rvModelList.addAll(videoResults)
+        rvModelList.sortByDescending { it.datetime }
+        adapter.notifyDataSetChanged()
     }
 }

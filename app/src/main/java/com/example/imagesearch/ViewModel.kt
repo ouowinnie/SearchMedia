@@ -9,6 +9,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class SharedViewModel : ViewModel() {
     val selectedRvItem = MutableLiveData<List<RvModel>>()
+
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->
             val originalRequest = chain.request()
@@ -25,9 +26,12 @@ class SharedViewModel : ViewModel() {
         .client(okHttpClient)
         .build()
 
-    private val retrofitAPI: KakaoAPI = retrofit.create(KakaoAPI::class.java)
+    private val kakaoAPI = retrofit.create(KakaoAPI::class.java)
 
-    fun requestImageData(query: String): Call<RvModelList> {
-        return retrofitAPI.requestImageData(query)
+    fun searchImages(query: String): Call<RvModelList> {
+        return kakaoAPI.searchImages(query)
+    }
+    fun searchVideos(query: String): Call<RvModelList> {
+        return kakaoAPI.searchVideos(query)
     }
 }
