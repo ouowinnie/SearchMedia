@@ -7,7 +7,13 @@ import retrofit2.http.Query
 
 interface KakaoAPI {
     @GET("v2/search/image")
-    fun requestImageData(
-        @Query("query") query: String
+    fun searchImages(
+        @Query("query") query: String,
+        @Query("sort") sort: String = "recency"
+    ): Call<RvModelList>
+    @GET("v2/search/vclip")
+    fun searchVideos(
+        @Query("query") query: String,
+        @Query("sort") sort: String = "recency"
     ): Call<RvModelList>
 }
