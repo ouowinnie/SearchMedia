@@ -30,18 +30,37 @@ class SearchFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        // 뷰 바인딩, 리사이클러뷰, 뷰 모델, 쉐어드 프리퍼런스 초기화
         binding = FragmentSearchBinding.inflate(layoutInflater)
-
-        adapter = RvAdapter(rvModelList)
-        binding.recyclerView.adapter = adapter
-        binding.recyclerView.layoutManager = StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
-
-        // ViewModel 초기화
+        setupRecyclerView()
         viewModel = ViewModelProvider(requireActivity()).get(SharedViewModel::class.java)
         prefs = requireContext().getSharedPreferences("pref_file", Context.MODE_PRIVATE)
         editPrefs = prefs.edit()
 
-        // 검색 버튼
+        // 검색 버튼 설정, 이전 검색어 불러오기
+        setupSearchButton()
+        loadLastSearchQuery()
+
+        return binding.root
+    }
+
+    // RecyclerView 설정
+    // 리사이클러뷰 아이템 클릭 시 현재 위치 값을 넘겨준다
+    private fun setupRecyclerView() {
+        adapter = RvAdapter(rvModelList)
+        binding.recyclerView.adapter = adapter
+        binding.recyclerView.layoutManager = StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
+        binding.recyclerView.addItemDecoration(ItemSpacingDecoration(30))
+
+        adapter.itemClick = object : RvAdapter.ItemClick {
+            override fun onClick(view: View, position: Int) {
+                handleItemClick(position)
+            }
+        }
+    }
+
+    // 검색 버튼 클릭 시 검색어가 있으면 검색 수행
+    private fun setupSearchButton() {
         binding.searchButton.setOnClickListener {
             val query = binding.searchEditText.text.toString()
             if (query.isNotEmpty()) {
@@ -49,91 +68,77 @@ class SearchFragment : Fragment() {
                 Log.d("버튼", "넘겨주고 있는겨 ~")
             }
         }
+    }
 
-        // 이전 검색어 입력
-        val lastSearchQuery = loadSearchQuery()
+    // 이전(마지막) 검색어를 검색창에 설정해 화면에 남겨놓기
+    private fun loadLastSearchQuery() {
+        val lastSearchQuery = prefs.getString("searchQuery", "") ?: ""
         if (lastSearchQuery.isNotEmpty()) {
             binding.searchEditText.setText(lastSearchQuery)
         }
-
-        // 아이템 데이터
-        adapter.itemClick = object : RvAdapter.ItemClick {
-            override fun onClick(view: View, position: Int) {
-                val clickedItem = rvModelList[position]
-
-                val selectedItems = viewModel.selectedRvItem.value?.toMutableList() ?: mutableListOf()
-                selectedItems.add(clickedItem)
-                viewModel.selectedRvItem.value = selectedItems
-                Toast.makeText(context, "보관함에 추가 되었습니다.", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // 아이템 간격 조절
-        val itemSpacingDecoration = ItemSpacingDecoration(30)
-        binding.recyclerView.addItemDecoration(itemSpacingDecoration)
-
-        return binding.root
     }
 
-    // 데이터 추가하고 어뎁터 갱신하기
     private fun performSearch(query: String) {
+        // 검색 API 호출
         val imageCall = viewModel.searchImages(query)
         val videoCall = viewModel.searchVideos(query)
-
+        // 검색 결과 저장 리스트
         val imageResults: MutableList<RvModel> = mutableListOf()
         val videoResults: MutableList<RvModel> = mutableListOf()
 
-        val imageCallback = object : Callback<RvModelList> {
+        fun handleSearchResponse(resultList: MutableList<RvModel>) = object : Callback<RvModelList> {
             override fun onResponse(call: Call<RvModelList>, response: Response<RvModelList>) {
                 if (response.isSuccessful) {
-                    val body = response.body()
-                    body?.let {
-                        imageResults.addAll(it.data)
+                    response.body()?.data?.let {
+                        // 검색 결과를 저장 리스트에 추가하고 RecyclerView 업데이트
+                        resultList.addAll(it)
                         adapter.notifyDataSetChanged()
                         combineResults(imageResults, videoResults)
                     }
                 }
             }
+            // 실패 시 처리
             override fun onFailure(call: Call<RvModelList>, t: Throwable) {
             }
         }
 
-        val videoCallback = object : Callback<RvModelList> {
-            override fun onResponse(call: Call<RvModelList>, response: Response<RvModelList>) {
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    body?.let {
-                        videoResults.addAll(it.data)
-                        adapter.notifyDataSetChanged()
-                        combineResults(imageResults, videoResults)
-                    }
-                }
-            }
-            override fun onFailure(call: Call<RvModelList>, t: Throwable) {
-            }
-        }
+        // 이미지, 비디오 검색 결과 콜백 저장
+        // handleSearchResponse() : Retrofit 콜백 객체 생성, 검색 결과를 처리하고 UI에 표시하기 위한 로직
+        // imageCallback, videoCallback : 이미지와 비디오 검색에 대한 콜백 객체
+        val imageCallback = handleSearchResponse(imageResults)
+        val videoCallback = handleSearchResponse(videoResults)
 
+        // API 호출
+        // imageCallback, videoCallback : 서버에 이미지, 비디오 검색 요청하는 객체
+        // enqueue : 요청을 비동기적으로 실행하고, 서버 응답이 도착하면 해당 응답을 처리하기 위해
+        // 미리 정의한 콜백 함수 (imageCallback 및 videoCallback)를 호출
         imageCall.enqueue(imageCallback)
         videoCall.enqueue(videoCallback)
 
         saveSearchQuery(query)
     }
 
+    // 검색어 저장
     private fun saveSearchQuery(query: String) {
-        prefs = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        editPrefs = prefs.edit()
-        editPrefs.putString("searchQuery", query)
-        editPrefs.apply()
+        editPrefs.putString("searchQuery", query).apply()
     }
-    private fun loadSearchQuery(): String {
-        prefs = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        return prefs.getString("searchQuery", "") ?: ""
+    // 아이템 클릭 처리
+    private fun handleItemClick(position: Int) {
+        val clickedItem = rvModelList[position]
+        // 선택된 아이템을 뷰 모델에 추가
+        val selectedItems = viewModel.selectedRvItem.value?.toMutableList() ?: mutableListOf()
+        selectedItems.add(clickedItem)
+        viewModel.selectedRvItem.value = selectedItems
+        Toast.makeText(context, "보관함에 추가 되었습니다.", Toast.LENGTH_SHORT).show()
     }
+    // 검색 결과 이미지, 비디오를 합쳐서 RecyclerView에 표시
     private fun combineResults(imageResults: List<RvModel>, videoResults: List<RvModel>) {
-        rvModelList.clear()
-        rvModelList.addAll(imageResults)
-        rvModelList.addAll(videoResults)
-        rvModelList.sortByDescending { it.datetime }
+        rvModelList.apply {
+            clear()
+            addAll(imageResults)
+            addAll(videoResults)
+            sortByDescending { it.datetime }
+        }
         adapter.notifyDataSetChanged()
     }
 }
