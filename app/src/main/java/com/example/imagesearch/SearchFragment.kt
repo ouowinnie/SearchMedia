@@ -13,6 +13,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.imagesearch.databinding.FragmentSearchBinding
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -122,12 +124,20 @@ class SearchFragment : Fragment() {
     private fun saveSearchQuery(query: String) {
         editPrefs.putString("searchQuery", query).apply()
     }
+    // 검색 아이템 저장, 데이터 넘겨주기
+    private fun saveLastSelectedItem(items: List<RvModel>) {
+        val gson = Gson()
+        val itemJson = gson.toJson(items, object : TypeToken<List<RvModel>>() {}.type)
+        editPrefs.putString("lastSelectedItem", itemJson)
+        editPrefs.apply()
+    }
     // 아이템 클릭 처리
     private fun handleItemClick(position: Int) {
         val clickedItem = rvModelList[position]
         // 선택된 아이템을 뷰 모델에 추가
         val selectedItems = viewModel.selectedRvItem.value?.toMutableList() ?: mutableListOf()
         selectedItems.add(clickedItem)
+        saveLastSelectedItem(selectedItems)
         viewModel.selectedRvItem.value = selectedItems
         Toast.makeText(context, "보관함에 추가 되었습니다.", Toast.LENGTH_SHORT).show()
     }
